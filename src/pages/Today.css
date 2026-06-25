@@ -1,0 +1,190 @@
+.today {
+  padding: 20px 16px;
+}
+
+.today-header {
+  margin-bottom: 20px;
+}
+
+.today-date {
+  font-size: 14px;
+  color: #64748b;
+  margin-bottom: 2px;
+}
+
+.today-title {
+  font-size: 24px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.card {
+  background: #fff;
+  border-radius: 16px;
+  padding: 20px;
+  margin-bottom: 14px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+}
+
+.card-title {
+  font-size: 17px;
+  font-weight: 600;
+  color: #334155;
+  margin-bottom: 14px;
+}
+
+/* 吃飯 */
+.meal-row {
+  display: flex;
+  gap: 10px;
+}
+
+.meal-btn {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 16px 8px;
+  border-radius: 12px;
+  border: 2px solid #e2e8f0;
+  background: #f8fafc;
+  font-size: 14px;
+  color: #475569;
+  cursor: pointer;
+  transition: all 0.15s;
+  font-family: inherit;
+}
+
+.meal-btn.checked {
+  border-color: #22c55e;
+  background: #f0fdf4;
+  color: #15803d;
+  font-weight: 600;
+}
+
+.check-icon {
+  font-size: 24px;
+}
+
+/* 睡覺 */
+.action-btn {
+  width: 100%;
+  padding: 18px;
+  border-radius: 12px;
+  border: none;
+  font-size: 17px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  transition: transform 0.1s, opacity 0.1s;
+}
+
+.action-btn:active {
+  transform: scale(0.97);
+  opacity: 0.85;
+}
+
+.sleep-btn {
+  background: #818cf8;
+  color: #fff;
+}
+
+.wake-btn {
+  background: #fb923c;
+  color: #fff;
+  margin-bottom: 10px;
+}
+
+.sleep-status {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.sleep-status.sleeping {
+  background: #f1f5f9;
+  border-radius: 10px;
+  padding: 14px;
+}
+
+.sleep-status.done {
+  background: #f0fdf4;
+  border-radius: 10px;
+  padding: 14px;
+}
+
+.sleep-status.partial {
+  background: #fff7ed;
+  border-radius: 10px;
+  padding: 14px;
+}
+
+.sleep-row {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 8px;
+}
+
+.sleep-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.sleep-info span {
+  font-size: 12px;
+  color: #64748b;
+}
+
+.sleep-info strong {
+  font-size: 16px;
+  color: #1e293b;
+}
+
+.sleep-info strong.green { color: #15803d; }
+.sleep-info strong.orange { color: #c2410c; }
+
+.sleep-target {
+  font-size: 13px;
+  font-weight: 500;
+  color: #475569;
+}
+
+.reset-btn {
+  align-self: flex-start;
+  margin-top: 4px;
+  background: none;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 4px 12px;
+  font-size: 12px;
+  color: #64748b;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+/* 運動 */
+.exercise-btn {
+  width: 100%;
+  padding: 20px;
+  border-radius: 12px;
+  border: 2px solid #e2e8f0;
+  background: #f8fafc;
+  font-size: 17px;
+  font-weight: 600;
+  color: #475569;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.15s;
+}
+
+.exercise-btn.checked {
+  border-color: #22c55e;
+  background: #f0fdf4;
+  color: #15803d;
+}
+
+.exercise-btn:active {
+  transform: scale(0.98);
+}
