@@ -94,18 +94,21 @@
 .cal-grid {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
-  gap: 4px;
+  gap: 3px;
 }
 
 .cal-day {
-  aspect-ratio: 1;
-  border-radius: 8px;
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  min-width: 0;
+  border-radius: 6px;
   border: 2px solid transparent;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
   font-family: inherit;
+  padding: 0;
   transition: border-color 0.1s;
 }
 
