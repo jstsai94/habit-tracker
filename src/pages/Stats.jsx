@@ -1,9 +1,11 @@
 import { useState, useMemo } from 'react'
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
-  LineChart, Line, CartesianGrid, Legend
+  ScatterChart, Scatter, ReferenceLine, CartesianGrid,
 } from 'recharts'
-import { loadData, getDayRecord, getDayStatus, getToday } from '../lib/storage'
+import {
+  loadData, getDayRecord, getDayStatus, getToday, timeToMinutes, minutesToTime,
+} from '../lib/storage'
 import './Stats.css'
 
 function getMonthDates(year, month) {
@@ -16,22 +18,24 @@ function getMonthDates(year, month) {
   return days
 }
 
-function calcRate(records, days, fn) {
-  const filled = days.filter(d => records[d] && fn(records[d]))
-  return days.length ? Math.round((filled.length / days.length) * 100) : 0
-}
-
-const STATUS_COLOR = { full: '#22c55e', partial: '#fbbf24', empty: '#e2e8f0', none: '#e2e8f0' }
+const STATUS_COLOR = { full: '#22c55e', partial: '#fbbf24', empty: '#e2e8f0' }
 const STATUS_LABEL = { full: '全達成', partial: '部分達成', empty: '未記錄' }
+
+// 格式化分鐘數為時間字串（用於圖表 tooltip）
+function fmtMin(m) {
+  if (m == null) return '—'
+  return minutesToTime(m)
+}
 
 export default function Stats() {
   const today = getToday()
   const now = new Date(today + 'T00:00:00')
   const [viewMonth, setViewMonth] = useState({ year: now.getFullYear(), month: now.getMonth() })
   const [selected, setSelected] = useState(null)
+  const [statsTab, setStatsTab] = useState('meal') // 'meal' | 'sleep'
   const data = useMemo(() => loadData(), [])
 
-  // 近 60 天（圖表用）
+  // 近 60 天
   const last60 = useMemo(() => {
     const arr = []
     for (let i = 59; i >= 0; i--) {
@@ -39,47 +43,76 @@ export default function Stats() {
       d.setDate(d.getDate() - i)
       const key = d.toISOString().slice(0, 10)
       const rec = data[key]
-      if (!rec) { arr.push({ date: key, label: `${d.getMonth()+1}/${d.getDate()}` }); continue }
-      const mealCount = [rec.meals?.breakfast, rec.meals?.lunch, rec.meals?.dinner].filter(Boolean).length
+      const label = `${d.getMonth()+1}/${d.getDate()}`
+      if (!rec) { arr.push({ date: key, label }); continue }
       arr.push({
-        date: key,
-        label: `${d.getMonth()+1}/${d.getDate()}`,
-        吃飯: Math.round((mealCount / 3) * 100),
-        睡覺: rec.sleep?.hours != null ? Math.min(Math.round((rec.sleep.hours / 7) * 100), 100) : null,
-        運動: rec.exercise ? 100 : 0,
+        date: key, label,
+        breakfast: timeToMinutes(rec.meals?.breakfast),
+        lunch:     timeToMinutes(rec.meals?.lunch),
+        dinner:    timeToMinutes(rec.meals?.dinner),
+        sleepAt:   timeToMinutes(rec.sleep?.sleepAt),
+        wakeAt:    timeToMinutes(rec.sleep?.wakeAt),
+        hours:     rec.sleep?.hours,
+        exercise:  !!rec.exercise,
       })
     }
     return arr
   }, [data, today])
 
-  // 月份日曆
+  const last14 = last60.slice(-14)
+
+  // 完成率（近60天有紀錄的天）
+  const recorded = last60.filter(d => data[d.date])
+  const total = recorded.length || 1
+  const mealRate = Math.round(recorded.filter(d => data[d.date]?.meals?.breakfast && data[d.date]?.meals?.lunch && data[d.date]?.meals?.dinner).length / total * 100)
+  const sleepRate = Math.round(recorded.filter(d => (data[d.date]?.sleep?.hours || 0) >= 7).length / total * 100)
+  const exRate = Math.round(recorded.filter(d => data[d.date]?.exercise).length / total * 100)
+
+  // 平均用餐時間
+  function avg(arr) {
+    const vals = arr.filter(v => v != null)
+    return vals.length ? Math.round(vals.reduce((a, b) => a + b, 0) / vals.length) : null
+  }
+  const avgBreakfast = avg(last60.map(d => d.breakfast))
+  const avgLunch     = avg(last60.map(d => d.lunch))
+  const avgDinner    = avg(last60.map(d => d.dinner))
+  const avgSleep     = avg(last60.map(d => d.sleepAt != null ? (d.sleepAt < 720 ? d.sleepAt + 1440 : d.sleepAt) : null))
+  const avgWake      = avg(last60.map(d => d.wakeAt))
+
+  // 日曆
   const monthDates = useMemo(() => getMonthDates(viewMonth.year, viewMonth.month), [viewMonth])
   const firstWeekday = new Date(viewMonth.year, viewMonth.month, 1).getDay()
+  const todayMonth = { year: now.getFullYear(), month: now.getMonth() }
+  const isCurrentMonth = viewMonth.year === todayMonth.year && viewMonth.month === todayMonth.month
 
-  // 整體完成率（近60天）
-  const recentDays = Object.keys(data)
-    .filter(d => d >= last60[0]?.date)
-  const mealRate = calcRate(data, recentDays, r => r.meals?.breakfast && r.meals?.lunch && r.meals?.dinner)
-  const sleepRate = calcRate(data, recentDays, r => r.sleep?.hours >= 7)
-  const exRate = calcRate(data, recentDays, r => r.exercise)
-
-  function prevMonth() {
-    setViewMonth(({ year, month }) =>
-      month === 0 ? { year: year - 1, month: 11 } : { year, month: month - 1 }
-    )
-    setSelected(null)
-  }
-
+  function prevMonth() { setViewMonth(({ year, month }) => month === 0 ? { year: year - 1, month: 11 } : { year, month: month - 1 }); setSelected(null) }
   function nextMonth() {
-    const todayMonth = { year: now.getFullYear(), month: now.getMonth() }
-    setViewMonth(cur => {
-      if (cur.year === todayMonth.year && cur.month === todayMonth.month) return cur
-      return cur.month === 11 ? { year: cur.year + 1, month: 0 } : { year: cur.year, month: cur.month + 1 }
-    })
+    if (isCurrentMonth) return
+    setViewMonth(({ year, month }) => month === 11 ? { year: year + 1, month: 0 } : { year, month: month + 1 })
     setSelected(null)
   }
 
   const selectedRec = selected ? getDayRecord(data, selected) : null
+
+  // 用餐時間散佈圖資料（近14天）
+  const mealScatter = {
+    breakfast: last14.filter(d => d.breakfast != null).map(d => ({ x: d.label, y: d.breakfast })),
+    lunch:     last14.filter(d => d.lunch != null).map(d => ({ x: d.label, y: d.lunch })),
+    dinner:    last14.filter(d => d.dinner != null).map(d => ({ x: d.label, y: d.dinner })),
+  }
+
+  // 睡眠時間折線（近14天）
+  const sleepBars = last14.map(d => ({
+    label: d.label,
+    睡眠時數: d.hours,
+  }))
+
+  // Y 軸格式：分鐘 → 時間
+  const timeTickFormatter = (m) => {
+    if (m == null) return ''
+    const h = Math.floor(((m % 1440) + 1440) % 1440 / 60)
+    return `${h}:00`
+  }
 
   return (
     <div className="stats">
@@ -87,53 +120,75 @@ export default function Stats() {
         <div className="stats-title">統計</div>
       </header>
 
-      {/* 完成率卡片 */}
+      {/* 完成率 */}
       <section className="card">
         <div className="card-title">近兩個月完成率</div>
         <div className="rate-row">
-          <div className="rate-item">
-            <div className="rate-num">{mealRate}%</div>
-            <div className="rate-label">🍽️ 三餐達標</div>
-          </div>
-          <div className="rate-item">
-            <div className="rate-num">{sleepRate}%</div>
-            <div className="rate-label">😴 睡眠達標</div>
-          </div>
-          <div className="rate-item">
-            <div className="rate-num">{exRate}%</div>
-            <div className="rate-label">💪 有運動</div>
-          </div>
+          <div className="rate-item"><div className="rate-num" style={{color:'#22c55e'}}>{mealRate}%</div><div className="rate-label">🍽️ 三餐達標</div></div>
+          <div className="rate-item"><div className="rate-num" style={{color:'#818cf8'}}>{sleepRate}%</div><div className="rate-label">😴 睡眠達標</div></div>
+          <div className="rate-item"><div className="rate-num" style={{color:'#fb923c'}}>{exRate}%</div><div className="rate-label">💪 有運動</div></div>
         </div>
       </section>
 
-      {/* 長條圖：近14天 */}
+      {/* 用餐 / 睡眠切換 */}
       <section className="card">
-        <div className="card-title">近 14 天達成率（%）</div>
-        <ResponsiveContainer width="100%" height={180}>
-          <BarChart data={last60.slice(-14)} barCategoryGap="30%">
-            <XAxis dataKey="label" tick={{ fontSize: 10 }} />
-            <YAxis domain={[0, 100]} tick={{ fontSize: 10 }} width={28} />
-            <Tooltip formatter={(v) => v != null ? `${v}%` : '未記錄'} />
-            <Legend wrapperStyle={{ fontSize: 12 }} />
-            <Bar dataKey="吃飯" fill="#22c55e" radius={[3,3,0,0]} />
-            <Bar dataKey="睡覺" fill="#818cf8" radius={[3,3,0,0]} />
-            <Bar dataKey="運動" fill="#fb923c" radius={[3,3,0,0]} />
-          </BarChart>
-        </ResponsiveContainer>
-      </section>
+        <div className="tab-row">
+          <button className={`tab-btn ${statsTab==='meal' ? 'active' : ''}`} onClick={() => setStatsTab('meal')}>🍽️ 用餐時間</button>
+          <button className={`tab-btn ${statsTab==='sleep' ? 'active' : ''}`} onClick={() => setStatsTab('sleep')}>😴 睡眠紀錄</button>
+        </div>
 
-      {/* 折線圖：近60天睡眠時數 */}
-      <section className="card">
-        <div className="card-title">近 60 天睡眠時數</div>
-        <ResponsiveContainer width="100%" height={160}>
-          <LineChart data={last60}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-            <XAxis dataKey="label" tick={{ fontSize: 9 }} interval={6} />
-            <YAxis domain={[0, 12]} tick={{ fontSize: 10 }} width={24} />
-            <Tooltip formatter={(v) => v != null ? `${(v/100*7).toFixed(1)} 小時` : '未記錄'} />
-            <Line type="monotone" dataKey="睡覺" stroke="#818cf8" dot={false} strokeWidth={2} connectNulls={false} />
-          </LineChart>
-        </ResponsiveContainer>
+        {statsTab === 'meal' && (
+          <>
+            <div className="avg-row">
+              <div className="avg-item"><span>平均早餐</span><strong>{fmtMin(avgBreakfast)}</strong></div>
+              <div className="avg-item"><span>平均午餐</span><strong>{fmtMin(avgLunch)}</strong></div>
+              <div className="avg-item"><span>平均晚餐</span><strong>{fmtMin(avgDinner)}</strong></div>
+            </div>
+            <div className="chart-label">近 14 天用餐時間分佈</div>
+            <ResponsiveContainer width="100%" height={200}>
+              <ScatterChart margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                <XAxis dataKey="x" type="category" allowDuplicatedCategory={false} tick={{ fontSize: 9 }} />
+                <YAxis
+                  dataKey="y" type="number"
+                  domain={[300, 1320]}
+                  tickFormatter={timeTickFormatter}
+                  ticks={[360,480,600,720,840,960,1080,1200]}
+                  tick={{ fontSize: 10 }} width={36}
+                />
+                <Tooltip formatter={(v) => fmtMin(v)} cursor={{ strokeDasharray: '3 3' }} />
+                <Scatter name="早餐" data={mealScatter.breakfast} fill="#f59e0b" />
+                <Scatter name="午餐" data={mealScatter.lunch}     fill="#22c55e" />
+                <Scatter name="晚餐" data={mealScatter.dinner}    fill="#6366f1" />
+              </ScatterChart>
+            </ResponsiveContainer>
+            <div className="scatter-legend">
+              <span style={{color:'#f59e0b'}}>● 早餐</span>
+              <span style={{color:'#22c55e'}}>● 午餐</span>
+              <span style={{color:'#6366f1'}}>● 晚餐</span>
+            </div>
+          </>
+        )}
+
+        {statsTab === 'sleep' && (
+          <>
+            <div className="avg-row">
+              <div className="avg-item"><span>平均入睡</span><strong>{fmtMin(avgSleep != null ? ((avgSleep % 1440) + 1440) % 1440 : null)}</strong></div>
+              <div className="avg-item"><span>平均起床</span><strong>{fmtMin(avgWake)}</strong></div>
+            </div>
+            <div className="chart-label">近 14 天睡眠時數</div>
+            <ResponsiveContainer width="100%" height={180}>
+              <BarChart data={sleepBars} barCategoryGap="35%">
+                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                <XAxis dataKey="label" tick={{ fontSize: 9 }} />
+                <YAxis domain={[0, 12]} tick={{ fontSize: 10 }} width={24} />
+                <Tooltip formatter={(v) => v != null ? `${v} 小時` : '未記錄'} />
+                <ReferenceLine y={7} stroke="#22c55e" strokeDasharray="4 2" label={{ value:'目標', position:'insideTopRight', fontSize:10, fill:'#22c55e' }} />
+                <Bar dataKey="睡眠時數" fill="#818cf8" radius={[4,4,0,0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </>
+        )}
       </section>
 
       {/* 日曆 */}
@@ -141,12 +196,10 @@ export default function Stats() {
         <div className="cal-nav">
           <button onClick={prevMonth}>‹</button>
           <span>{viewMonth.year} 年 {viewMonth.month + 1} 月</span>
-          <button onClick={nextMonth}>›</button>
+          <button onClick={nextMonth} disabled={isCurrentMonth} style={{ opacity: isCurrentMonth ? 0.3 : 1 }}>›</button>
         </div>
         <div className="cal-week-header">
-          {['日','一','二','三','四','五','六'].map(d => (
-            <div key={d} className="cal-weekday">{d}</div>
-          ))}
+          {['日','一','二','三','四','五','六'].map(d => <div key={d} className="cal-weekday">{d}</div>)}
         </div>
         <div className="cal-grid">
           {Array(firstWeekday).fill(null).map((_, i) => <div key={`e${i}`} />)}
@@ -178,36 +231,20 @@ export default function Stats() {
         </div>
       </section>
 
-      {/* 當天詳情 */}
+      {/* 點日期詳情 */}
       {selected && selectedRec && (
         <section className="card detail-card">
-          <div className="card-title">
-            {selected.slice(5).replace('-', ' / ')} 詳情
-          </div>
-          <div className="detail-row">
-            <span>早餐</span><span>{selectedRec.meals.breakfast ? '✅' : '❌'}</span>
-          </div>
-          <div className="detail-row">
-            <span>午餐</span><span>{selectedRec.meals.lunch ? '✅' : '❌'}</span>
-          </div>
-          <div className="detail-row">
-            <span>晚餐</span><span>{selectedRec.meals.dinner ? '✅' : '❌'}</span>
-          </div>
-          <div className="detail-row">
-            <span>入睡</span>
-            <span>{selectedRec.sleep.sleepAt || '—'}</span>
-          </div>
-          <div className="detail-row">
-            <span>起床</span>
-            <span>{selectedRec.sleep.wakeAt || '—'}</span>
-          </div>
-          <div className="detail-row">
-            <span>睡眠時數</span>
-            <span>{selectedRec.sleep.hours != null ? `${selectedRec.sleep.hours} 小時` : '—'}</span>
-          </div>
-          <div className="detail-row">
-            <span>運動</span><span>{selectedRec.exercise ? '✅' : '❌'}</span>
-          </div>
+          <div className="card-title">{selected.slice(5).replace('-', ' / ')} 詳情</div>
+          {[['早餐', selectedRec.meals.breakfast], ['午餐', selectedRec.meals.lunch], ['晚餐', selectedRec.meals.dinner]].map(([label, val]) => (
+            <div key={label} className="detail-row">
+              <span>{label}</span>
+              <span>{val ? `✅ ${val}` : '❌'}</span>
+            </div>
+          ))}
+          <div className="detail-row"><span>入睡</span><span>{selectedRec.sleep.sleepAt || '—'}</span></div>
+          <div className="detail-row"><span>起床</span><span>{selectedRec.sleep.wakeAt || '—'}</span></div>
+          <div className="detail-row"><span>睡眠時數</span><span>{selectedRec.sleep.hours != null ? `${selectedRec.sleep.hours} 小時` : '—'}</span></div>
+          <div className="detail-row"><span>運動</span><span>{selectedRec.exercise ? `✅ ${selectedRec.exercise}` : '❌'}</span></div>
         </section>
       )}
     </div>

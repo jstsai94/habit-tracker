@@ -1,56 +1,67 @@
-.stats {
-  padding: 20px 16px;
-}
-
-.stats-header {
-  margin-bottom: 20px;
-}
-
-.stats-title {
-  font-size: 24px;
-  font-weight: 700;
-  color: #0f172a;
-}
+.stats { padding: 20px 16px; }
+.stats-header { margin-bottom: 20px; }
+.stats-title { font-size: 24px; font-weight: 700; color: #0f172a; }
 
 .card {
   background: #fff;
   border-radius: 16px;
-  padding: 20px;
+  padding: 18px;
   margin-bottom: 14px;
   box-shadow: 0 1px 4px rgba(0,0,0,0.06);
 }
-
-.card-title {
-  font-size: 15px;
-  font-weight: 600;
-  color: #334155;
-  margin-bottom: 14px;
-}
+.card-title { font-size: 15px; font-weight: 600; color: #334155; margin-bottom: 14px; }
 
 /* 完成率 */
-.rate-row {
-  display: flex;
-  gap: 8px;
-}
+.rate-row { display: flex; gap: 8px; }
+.rate-item { flex: 1; text-align: center; background: #f8fafc; border-radius: 12px; padding: 14px 6px; }
+.rate-num { font-size: 22px; font-weight: 700; }
+.rate-label { font-size: 11px; color: #64748b; margin-top: 4px; }
 
-.rate-item {
+/* 分頁切換 */
+.tab-row { display: flex; gap: 6px; margin-bottom: 16px; }
+.tab-btn {
   flex: 1;
-  text-align: center;
+  padding: 10px;
+  border-radius: 10px;
+  border: 2px solid #e2e8f0;
   background: #f8fafc;
-  border-radius: 12px;
-  padding: 14px 8px;
-}
-
-.rate-num {
-  font-size: 24px;
-  font-weight: 700;
-  color: #22c55e;
-}
-
-.rate-label {
-  font-size: 12px;
+  font-size: 13px;
+  font-weight: 500;
   color: #64748b;
-  margin-top: 4px;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.15s;
+}
+.tab-btn.active {
+  border-color: #22c55e;
+  background: #f0fdf4;
+  color: #15803d;
+  font-weight: 600;
+}
+
+/* 平均時間 */
+.avg-row { display: flex; gap: 8px; margin-bottom: 12px; }
+.avg-item {
+  flex: 1;
+  background: #f8fafc;
+  border-radius: 10px;
+  padding: 10px 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+}
+.avg-item span { font-size: 11px; color: #64748b; }
+.avg-item strong { font-size: 15px; color: #1e293b; font-weight: 600; }
+
+.chart-label { font-size: 12px; color: #94a3b8; margin-bottom: 6px; }
+
+.scatter-legend {
+  display: flex;
+  gap: 14px;
+  margin-top: 8px;
+  font-size: 12px;
+  color: #475569;
 }
 
 /* 日曆 */
@@ -58,24 +69,19 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 12px;
+  margin-bottom: 10px;
   font-size: 15px;
   font-weight: 600;
   color: #334155;
 }
-
 .cal-nav button {
-  width: 36px;
-  height: 36px;
+  width: 36px; height: 36px;
   border-radius: 50%;
   border: none;
   background: #f1f5f9;
   font-size: 20px;
   cursor: pointer;
   color: #475569;
-  display: flex;
-  align-items: center;
-  justify-content: center;
 }
 
 .cal-week-header {
@@ -83,13 +89,7 @@
   grid-template-columns: repeat(7, 1fr);
   margin-bottom: 4px;
 }
-
-.cal-weekday {
-  text-align: center;
-  font-size: 12px;
-  color: #94a3b8;
-  padding: 4px 0;
-}
+.cal-weekday { text-align: center; font-size: 12px; color: #94a3b8; padding: 4px 0; }
 
 .cal-grid {
   display: grid;
@@ -111,56 +111,18 @@
   padding: 0;
   transition: border-color 0.1s;
 }
+.cal-day:disabled { cursor: default; opacity: 0.25; }
+.cal-day.today  { border-color: #334155; }
+.cal-day.sel    { border-color: #0ea5e9; }
+.cal-day-num    { font-size: 12px; font-weight: 500; color: #334155; }
 
-.cal-day:disabled {
-  cursor: default;
-  opacity: 0.3;
-}
-
-.cal-day.today {
-  border-color: #334155;
-}
-
-.cal-day.sel {
-  border-color: #0ea5e9;
-}
-
-.cal-day-num {
-  font-size: 13px;
-  font-weight: 500;
-  color: #334155;
-}
-
-.cal-legend {
-  display: flex;
-  gap: 14px;
-  margin-top: 12px;
-  flex-wrap: wrap;
-}
-
-.legend-item {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 12px;
-  color: #64748b;
-}
-
-.legend-dot {
-  width: 12px;
-  height: 12px;
-  border-radius: 3px;
-}
+.cal-legend { display: flex; gap: 12px; margin-top: 10px; flex-wrap: wrap; }
+.legend-item { display: flex; align-items: center; gap: 5px; font-size: 12px; color: #64748b; }
+.legend-dot  { width: 12px; height: 12px; border-radius: 3px; }
 
 /* 詳情 */
-.detail-card {
-  animation: fadeIn 0.15s ease;
-}
-
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(6px); }
-  to { opacity: 1; transform: translateY(0); }
-}
+.detail-card { animation: fadeIn 0.15s ease; }
+@keyframes fadeIn { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:translateY(0); } }
 
 .detail-row {
   display: flex;
@@ -171,12 +133,5 @@
   font-size: 14px;
   color: #475569;
 }
-
-.detail-row:last-child {
-  border-bottom: none;
-}
-
-.detail-row span:last-child {
-  font-weight: 600;
-  color: #1e293b;
-}
+.detail-row:last-child { border-bottom: none; }
+.detail-row span:last-child { font-weight: 600; color: #1e293b; }
